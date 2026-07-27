@@ -1,0 +1,22 @@
+[
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=smartanimes.net&sz=128",
+        "fileHash": "sha256-3f663f92cf5e2ecc686666a4017f513c29d4a893ce08495a1c3cb82d9c399a4d",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/reinansantos9090-debug/Rei-Stream-Extensions",
+        "fileSize": 10614,
+        "status": 1,
+        "language": "pt-br",
+        "authors": [
+            "Rei-Stream"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 3,
+        "internalName": "SmartAnimes",
+        "description": "Provedor do SmartAnimes",
+        "url": "https://raw.githubusercontent.com/reinansantos9090-debug/Rei-Stream-Extensions/builds/SmartAnimes.cs3",
+        "name": "SmartAnimes"
+    }
+]
