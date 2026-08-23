@@ -10,4 +10,3 @@ class SmartAnimesPlugin: Plugin() {
         registerMainAPI(SmartAnimes())
     }
 }
-
