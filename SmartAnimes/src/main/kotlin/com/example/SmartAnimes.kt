@@ -58,15 +58,15 @@ class SmartAnimes : MainAPI() {
         }
     }
 
-    // 3. Detalhes do Anime e Lista de Episódios
+        // 3. Detalhes do Anime e Lista de Episódios
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        val title = document.selectFirst("h1.entry-title, h1.title, div.anime-title")?.text()?.trim() 
+        val title = document.selectFirst("h1.entry-title, h1.title, div.anime-title")?.text()
             ?: "Sem título"
-        
+
         val poster = document.selectFirst("div.poster img, div.anime-thumbnail img")?.attr("src")
-        val description = document.selectFirst("div.description, div.sinopse, p.story")?.text()?.trim()
+        val description = document.selectFirst("div.description, div.sinopse, p.story")?.text()
 
         val episodes = document.select("ul.episodes-list li, div.episodes a, ul.list-episodes li").mapNotNull { element ->
             val epHref = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
@@ -80,18 +80,16 @@ class SmartAnimes : MainAPI() {
         return newAnimeLoadResponse(title, url, TvType.Anime) {
             this.posterUrl = poster?.let { fixUrl(it) }
             this.plot = description
-            this.episodes = episodes
+            this.addEpisodes(DubStatus.Subbed, episodes)
         }
     }
 
-    // 4. Extrator de Vídeos / Players
+    // 4. Extrator de Videos / Players
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
-        offset: Int,
-        playlistCallback: (Playlist) -> Unit,
-        callBack: (ExtractorLink) -> Unit
+        callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
 
@@ -100,13 +98,12 @@ class SmartAnimes : MainAPI() {
             val src = element.attr("src").ifEmpty { element.attr("data-src") }
             if (src.isNotEmpty()) {
                 val fullUrl = fixUrl(src)
-                
+
                 // Tenta resolver automaticamente via extratores nativos do CloudStream
-                loadExtractor(fullUrl, subtitleCallback, callBack)
+                loadExtractor(fullUrl, subtitleCallback, callback)
             }
         }
 
         return true
     }
 }
-
