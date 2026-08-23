@@ -1,4 +1,4 @@
-package com.lagradost
+package com.example
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
@@ -12,7 +12,7 @@ class SmartAnimes : MainAPI() {
 
     override val hasMainPage = true
 
-    override async fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get(mainUrl).document
         val home = mutableListOf<HomePageList>()
 
@@ -37,7 +37,7 @@ class SmartAnimes : MainAPI() {
         }
     }
 
-    override async fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query"
         val document = app.get(url).document
 
