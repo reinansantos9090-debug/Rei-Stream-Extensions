@@ -12,7 +12,7 @@ class SmartAnimes : MainAPI() {
 
     override val hasMainPage = true
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         val document = app.get(mainUrl).document
         val home = mutableListOf<HomePageList>()
 
