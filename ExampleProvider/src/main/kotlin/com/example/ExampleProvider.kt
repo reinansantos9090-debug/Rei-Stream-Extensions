@@ -55,7 +55,9 @@ class SmartAnimes : MainAPI() {
         val episodes = document.select("ul.episodios li, div.episodio, a.episode").mapNotNull { ep ->
             val epHref = ep.selectFirst("a")?.attr("href") ?: return@mapNotNull null
             val epName = ep.selectFirst(".title, .num, a")?.text() ?: "Episódio"
-            Episode(epHref, epName)
+            newEpisode(epHref) {
+                this.name = epName
+            }
         }
 
         return newAnimeLoadResponse(title, url, TvType.Anime) {
@@ -81,3 +83,4 @@ class SmartAnimes : MainAPI() {
         return true
     }
 }
+
