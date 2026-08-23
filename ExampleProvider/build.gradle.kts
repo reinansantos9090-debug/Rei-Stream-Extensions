@@ -6,7 +6,7 @@ dependencies {
 version = 2
 
 cloudstream {
-    description = "Provedor de animes do SmartAnimes"
+    description = "Provedor do SmartAnimes"
     authors = listOf("Rei-Stream")
     status = 1
     tvTypes = listOf("Anime")
