@@ -83,4 +83,4 @@ class SmartAnimes : MainAPI() {
         return true
     }
 }
-
+ 
