@@ -1,8 +1,12 @@
-cloudstream {
-    // Aponta para a classe do plugin
-    setPluginClass("com.example.ExamplePlugin")
-    
-    // Nome que vai aparecer na lista do aplicativo
-    authors = listOf("reinansantos9090")
-    description = "Extensão do SmartAnimes"
+package com.example
+
+import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
+import android.content.Context
+
+@CloudstreamPlugin
+class ExamplePlugin: Plugin() {
+    override fun load(context: Context) {
+        registerMainAPI(SmartAnimes())
+    }
 }
