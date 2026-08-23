@@ -6,7 +6,7 @@ dependencies {
 version = 1
 
 cloudstream {
-    setPluginClass("com.example.ExamplePlugin")
+    pluginClass = "com.example.ExamplePlugin"
     description = "Provedor de animes do SmartAnimes"
     authors = listOf("Rei-Stream")
     status = 1
