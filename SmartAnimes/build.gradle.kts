@@ -3,16 +3,15 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
 
-version = 3
+version = 4
 
 cloudstream {
-    description = "Provedor do SmartAnimes"
+    description = "Catálogo e player local para a biblioteca ReiFlix"
     authors = listOf("Rei-Stream")
     status = 1
     tvTypes = listOf("Anime")
     requiresResources = false
     language = "pt-br"
-    iconUrl = "https://www.google.com/s2/favicons?domain=smartanimes.net&sz=128"
 }
 
 android {

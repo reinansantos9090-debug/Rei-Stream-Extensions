@@ -1,58 +1,62 @@
-**⚠️ This is currently under development, dont use it yet if you're not comfortable with constantly merging new changes**
+# ReiFlix Local catalog
 
-# `Cloudstream3 Plugin Repo Template`
+This CloudStream extension turns a local anime library into a CloudStream-style
+catalogue: home sections, search, detail pages, episode lists, and the native
+video player. Unlike a streaming-provider extension, it does **not** scrape a
+catalogue or load video URLs from the internet.
 
-Template for a [Cloudstream3](https://github.com/recloudstream) plugin repo
+## Library layout
 
-**⚠️ Make sure you check "Include all branches" when using this template**
+Create one of these folders on the Android device:
 
- 
-## Getting started with writing your first plugin
+* `/storage/emulated/0/ReiFlix`
+* `/sdcard/ReiFlix`
+* `/storage/emulated/0/Download/ReiFlix`
 
-This template includes 1 example plugin.
+Use a genre-first layout. Each anime is a directory and each video file is an
+episode:
 
-1. Open the root build.gradle.kts, read the comments and replace all the placeholders
-2. Familiarize yourself with the project structure. Most files are commented
-3. Build or deploy your first plugin using:
-   - Windows: `.\gradlew.bat ExampleProvider:make` or `.\gradlew.bat ExampleProvider:deployWithAdb`
-   - Linux & Mac: `./gradlew ExampleProvider:make` or `./gradlew ExampleProvider:deployWithAdb`
+```text
+ReiFlix/
+├── Ação, Fantasia/
+│   └── Fullmetal Alchemist Brotherhood/
+│       ├── poster.jpg
+│       ├── description.txt
+│       ├── 01 - O alquimista de aço.mkv
+│       └── 02 - A primeira jornada.mkv
+└── Romance/
+    └── Your Lie in April/
+        └── 01.mp4
+```
 
+The top-level folder becomes the CloudStream home section and is also shown as
+the anime genre. Separate multiple genres with commas, slashes, or `|`.
+Supported video formats are MP4, MKV, WebM, AVI, MOV, and M4V. A local
+`poster.jpg`, `poster.jpeg`, `poster.png`, `poster.webp`, or `cover.jpg` is
+used when present; `description.txt` becomes the synopsis.
 
-## Granting All Files Access on Newer Android Devices
+## Privacy and metadata
 
-For local plugin testing, you need to grant the app "All Files Access" on newer Android devices (Android 11 and above). Here’s how to do it:
+Video discovery, search, grouping, and playback are local-only. The extension
+makes no network request, so a future cover/synopsis downloader or AI metadata
+assistant can be added as an explicit opt-in feature without exposing the
+library by default. Downloaded covers and synopses should be saved into each
+anime folder using the filenames above, keeping the player usable offline.
 
-### Using ADB
+## Android permission
 
-* `adb shell appops set --uid PACKAGE_NAME MANAGE_EXTERNAL_STORAGE allow`
-* Replace `PACKAGE_NAME` with the name of the package for the Cloudstream3 version you are using:
-   - debug: `com.lagradost.cloudstream3.prerelease.debug`
-   - prerelease: `com.lagradost.cloudstream3.prerelease`
-   - stable: `com.lagradost.cloudstream3`
+CloudStream needs **All files access** to read the library on Android 11+. For
+the debug build, grant it with:
 
-### Manually
+```bash
+adb shell appops set --uid com.lagradost.cloudstream3.prerelease.debug MANAGE_EXTERNAL_STORAGE allow
+```
 
-1. **Open Settings**: Go to your device’s Settings menu.
+For the prerelease or stable app, replace the package name respectively with
+`com.lagradost.cloudstream3.prerelease` or `com.lagradost.cloudstream3`.
 
-2. **Navigate to Special Access**:
-   - Tap on "Apps & notifications" or "Apps".
-   - Select "Special app access" or "Special access".
+## Build
 
-3. **Select All Files Access**:
-   - Tap on "All files access".
-   - It may be under the three vertical dots menu towards the top of the screen.
-
-4. **Grant Access to the App**: Find the app in the list and tap on it to toggle it, if it is not already enabled.
-
-6. **Restart the App**: Close and reopen the app to apply the changes.
-
-
-## License
-
-Everything in this repo is released into the public domain. You may use it however you want with no conditions whatsoever
-
-
-## Attribution
-
-This template as well as the gradle plugin and the whole plugin system is **heavily** based on [Aliucord](https://github.com/Aliucord).
-*Go use it, it's a great mobile discord client mod!*
+```bash
+./gradlew SmartAnimes:make
+```

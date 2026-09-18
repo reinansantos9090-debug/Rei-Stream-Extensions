@@ -2,108 +2,133 @@ package com.example
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import org.jsoup.nodes.Document
+import java.io.File
 
+/**
+ * Local-first catalogue provider for a ReiFlix media library.
+ *
+ * Expected layout:
+ * /storage/emulated/0/ReiFlix/<genre>/<anime>/<episode>.mp4
+ *
+ * A cover named poster.jpg/png/webp and a description.txt can be placed inside
+ * an anime directory. They are optional, so indexing never needs the network.
+ */
 class SmartAnimes : MainAPI() {
-    override var mainUrl = "https://smartanimes.net"
-    override var name = "SmartAnimes"
+    override var mainUrl = "file:///storage/emulated/0/ReiFlix"
+    override var name = "ReiFlix Local"
     override val hasMainPage = true
     override var lang = "pt-br"
     override val supportedTypes = setOf(TvType.Anime)
 
-    // 1. Página Inicial / Catálogo Principal
+    private val videoExtensions = setOf("mp4", "mkv", "webm", "avi", "mov", "m4v")
+    private val imageNames = listOf("poster.jpg", "poster.jpeg", "poster.png", "poster.webp", "cover.jpg")
+
+    private fun libraryRoot(): File = listOf(
+        File("/storage/emulated/0/ReiFlix"),
+        File("/sdcard/ReiFlix"),
+        File("/storage/emulated/0/Download/ReiFlix")
+    ).firstOrNull { it.isDirectory } ?: File("/storage/emulated/0/ReiFlix")
+
+    private fun File.isVideo() = isFile && extension.lowercase() in videoExtensions
+
+    private fun File.posterUrl(): String? = imageNames
+        .asSequence()
+        .map(::File)
+        .firstOrNull(File::isFile)
+        ?.toURI()
+        ?.toString()
+
+    private fun File.description(): String? = File(this, "description.txt")
+        .takeIf(File::isFile)
+        ?.readText()
+        ?.trim()
+        ?.takeIf(String::isNotBlank)
+
+    private fun animeResponse(directory: File): AnimeSearchResponse =
+        newAnimeSearchResponse(directory.name, directory.toURI().toString(), TvType.Anime) {
+            posterUrl = directory.posterUrl()
+        }
+
+    // Genres are the first-level folders. This makes the catalogue navigable
+    // without a remote provider or a plugin-specific search endpoint.
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(mainUrl).document
-        val homeItems = ArrayList<HomePageList>()
+        if (page > 1) return newHomePageResponse(emptyList())
 
-        // Raspagem segura dos itens da Home
-        val items = document.select("div.item, article.anime-item, div.poster").mapNotNull { element ->
-            val title = element.selectFirst("a")?.attr("title") 
-                ?: element.selectFirst("h3, h2, .title")?.text() 
-                ?: return@mapNotNull null
-            
-            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val poster = element.selectFirst("img")?.attr("data-src") 
-                ?: element.selectFirst("img")?.attr("src")
+        val root = libraryRoot()
+        val sections = root.listFiles()
+            ?.filter(File::isDirectory)
+            ?.sortedBy { it.name.lowercase() }
+            ?.mapNotNull { genre ->
+                val anime = genre.listFiles()
+                    ?.filter(File::isDirectory)
+                    ?.sortedBy { it.name.lowercase() }
+                    ?.map(::animeResponse)
+                    .orEmpty()
 
-            newAnimeSearchResponse(title, fixUrl(href), TvType.Anime) {
-                this.posterUrl = poster?.let { fixUrl(it) }
+                if (anime.isNotEmpty()) HomePageList(genre.name, anime) else null
             }
-        }
+            .orEmpty()
 
-        if (items.isNotEmpty()) {
-            homeItems.add(HomePageList("Adicionados Recentemente", items))
-        }
-
-        return newHomePageResponse(homeItems)
+        return newHomePageResponse(sections)
     }
 
-    // 2. Sistema de Busca
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=$query"
-        val document = app.get(url).document
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isEmpty()) return emptyList()
 
-        return document.select("div.item, article.anime-item, div.result-item").mapNotNull { element ->
-            val title = element.selectFirst("a")?.attr("title") 
-                ?: element.selectFirst("h3, h2, .title")?.text() 
-                ?: return@mapNotNull null
-            
-            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val poster = element.selectFirst("img")?.attr("data-src") 
-                ?: element.selectFirst("img")?.attr("src")
-
-            newAnimeSearchResponse(title, fixUrl(href), TvType.Anime) {
-                this.posterUrl = poster?.let { fixUrl(it) }
-            }
-        }
+        return libraryRoot().walkTopDown()
+            .maxDepth(2)
+            .filter(File::isDirectory)
+            .filter { it.parentFile != libraryRoot() }
+            .filter { it.name.contains(normalizedQuery, ignoreCase = true) }
+            .sortedBy { it.name.lowercase() }
+            .map(::animeResponse)
+            .toList()
     }
 
-        // 3. Detalhes do Anime e Lista de Episódios
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-
-        val title = document.selectFirst("h1.entry-title, h1.title, div.anime-title")?.text()
-            ?: "Sem título"
-
-        val poster = document.selectFirst("div.poster img, div.anime-thumbnail img")?.attr("src")
-        val description = document.selectFirst("div.description, div.sinopse, p.story")?.text()
-
-        val episodes = document.select("ul.episodes-list li, div.episodes a, ul.list-episodes li").mapNotNull { element ->
-            val epHref = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val epTitle = element.text().trim()
-
-            newEpisode(fixUrl(epHref)) {
-                this.name = epTitle
+        val animeDirectory = File(java.net.URI(url))
+        val episodes = animeDirectory.listFiles()
+            ?.filter(File::isVideo)
+            ?.sortedBy { it.nameWithoutExtension.lowercase() }
+            ?.map { episode ->
+                newEpisode(episode.toURI().toString()) {
+                    name = episode.nameWithoutExtension
+                }
             }
-        }
+            .orEmpty()
 
-        return newAnimeLoadResponse(title, url, TvType.Anime) {
-            this.posterUrl = poster?.let { fixUrl(it) }
-            this.plot = description
-            this.addEpisodes(DubStatus.Subbed, episodes)
+        return newAnimeLoadResponse(animeDirectory.name, url, TvType.Anime) {
+            posterUrl = animeDirectory.posterUrl()
+            plot = animeDirectory.description()
+            tags = animeDirectory.parentFile?.name
+                ?.split(',', '/', '|')
+                ?.map(String::trim)
+                ?.filter(String::isNotBlank)
+                .orEmpty()
+            addEpisodes(DubStatus.Subbed, episodes)
         }
     }
 
-    // 4. Extrator de Videos / Players
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
+        val video = File(java.net.URI(data))
+        if (!video.isVideo()) return false
 
-        // Procura por iframes e tags de vídeo na página do episódio
-        document.select("iframe, video source").forEach { element ->
-            val src = element.attr("src").ifEmpty { element.attr("data-src") }
-            if (src.isNotEmpty()) {
-                val fullUrl = fixUrl(src)
-
-                // Tenta resolver automaticamente via extratores nativos do CloudStream
-                loadExtractor(fullUrl, subtitleCallback, callback)
-            }
-        }
-
+        callback(
+            ExtractorLink(
+                source = name,
+                name = "Arquivo local",
+                url = data,
+                referer = "",
+                quality = Qualities.Unknown.value,
+                isM3u8 = false
+            )
+        )
         return true
     }
 }
